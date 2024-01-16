@@ -28,6 +28,8 @@ FS_SEL = 0 # Gyro scale setting 0 1 2 3
 Acc_SF = 2**AFS_SEL*2
 Gyro_SF = 2**FS_SEL*250
 
+print ("Acc_SF=+-",Acc_SF,"g ; Gyro_SF=+-", Gyro_SF, "deg/s")
+
 acc_scale = Acc_SF/32768.0
 gyro_scale = Gyro_SF/32768.0
 
@@ -88,7 +90,7 @@ while True:
 	Temp_C = ((temp)/340 + 36.53)
 	
 	print ("Raw:")
-	print (" acc_x=", acc_x, " acc_y=", acc_y, " acc_z=", acc_z, " gyro_x=", acc_x, " gyro_y=", gyro_y, " gyro_z=", gyro_z)
+	print (" gyro_x=", acc_x, " gyro_y=", gyro_y, " gyro_z=", gyro_z, " acc_x=", acc_x, " acc_y=", acc_y, " acc_z=", acc_z, " temp=", temp)
 
 	# Full scale range at AFS_SEL=0 +/- 2g as per sensitivity scale factor 
 	Ax = acc_x * acc_scale

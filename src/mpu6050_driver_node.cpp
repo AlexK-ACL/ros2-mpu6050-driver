@@ -18,7 +18,7 @@
 #include <string>
 #include <cmath>
 #include <utility>
-#include <wiringPi.h>
+#include <wiringPi.h> // https://github.com/WiringPi/WiringPi
 #include <wiringPiI2C.h>
 
 #define SMPRT_DIV    0x19 // Register 25 – Sample Rate Divider SMPRT_DIV; Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV)
