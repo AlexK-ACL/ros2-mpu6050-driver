@@ -8,7 +8,7 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic)  #-I/usr/local/include -L/usr/local/lib -lwiringPi
 endif()
 
 # find dependencies
@@ -24,10 +24,11 @@ ament_auto_add_library(mpu6050_driver_node SHARED
   src/mpu6050_driver_node.cpp
   src/mpu6050_driver_main.cpp
   include/imu_driver/mpu6050_driver.hpp
-  ~/include/**
+  #~/include/WiringPi/wiringPi/wiringPi.h
 )
 target_link_libraries(imu_driver
   wiringPi
+  #-lwiringPi
 )
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
