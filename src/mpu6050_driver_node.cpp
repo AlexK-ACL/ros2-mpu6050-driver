@@ -52,10 +52,12 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   using std::placeholders::_1;
   using std::chrono_literals::operator""ms;
 
-  this->declare_parameter("timer_period", "100");
-  this->declare_parameter("g", "9.81");
-  this->declare_parameter("accel_scale", "0");
-  this->declare_parameter("gyro_scale", "0");
+  // creates a parameter with the name timer_period and a default value of 100.
+  this->declare_parameter("timer_period", 100); // The parameter type is inferred from the default value
+  this->declare_parameter("g", 9.81);
+  this->declare_parameter("accel_scale", 0);
+  this->declare_parameter("gyro_scale", 0);
+
   // Get node update timer period
   timer_period = this->get_parameter("timer_period").as_int();
   g = this->get_parameter("g").as_double();
