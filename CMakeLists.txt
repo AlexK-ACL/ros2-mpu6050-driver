@@ -24,6 +24,8 @@ ament_auto_add_library(mpu6050_driver_node SHARED
   src/mpu6050_driver_node.cpp
   src/mpu6050_driver_main.cpp
   include/imu_driver/mpu6050_driver.hpp
+  #include/wiringPi/wiringPi.h
+  #include/wiringPi/wiringPiI2C.h
   #~/include/WiringPi/wiringPi/wiringPi.h
 )
 target_link_libraries(imu_driver
