@@ -44,10 +44,10 @@ def MPU_Init():
 	bus.write_byte_data(Device_Address, CONFIG, 0)
 	
 	#Write to Gyro configuration register
-	bus.write_byte_data(Device_Address, GYRO_CONFIG, FS_SEL)
+	bus.write_byte_data(Device_Address, GYRO_CONFIG, FS_SEL<<3) # Shift 3 bits to the left to set Bit3 and Bit4
 	
 	#Write to Accel configuration register
-	bus.write_byte_data(Device_Address, ACCEL_CONFIG, AFS_SEL)
+	bus.write_byte_data(Device_Address, ACCEL_CONFIG, AFS_SEL<<3) # Shift 3 bits to the left to set Bit3 and Bit4
 	
 	#Write to interrupt enable register
 	bus.write_byte_data(Device_Address, INT_ENABLE, 1)

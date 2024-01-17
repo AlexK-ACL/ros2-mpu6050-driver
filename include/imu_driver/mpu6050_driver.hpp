@@ -41,6 +41,16 @@ private:
   rclcpp::Clock::SharedPtr clock_;
   std::vector<float> gyro_;
   std::vector<float> accel_;
+  // Node parameters
+  int timer_period;
+  double g;
+  int FS_SEL;
+  int AFS_SEL;
+  int Acc_SF;
+  int Gyro_SF;
+  double acc_scale;
+  double gyro_scale;
+  // for wiringPiI2C
   int fd_;
 };
 

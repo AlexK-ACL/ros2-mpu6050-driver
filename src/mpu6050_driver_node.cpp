@@ -51,9 +51,20 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
 
   this->declare_parameter("timer_period", "100");
   this->declare_parameter("g", "9.81");
-  int timer_period = this->get_parameter("timer_period").as_int();
-  double timer_period = this->get_parameter("g").as_double();
+  this->declare_parameter("accel_scale", "0");
+  this->declare_parameter("gyro_scale", "0");
+  // Get node update timer period
+  timer_period = this->get_parameter("timer_period").as_int();
+  g = this->get_parameter("g").as_double();
 
+  // Measurements scaling setup
+  AFS_SEL = this->get_parameter("accel_scale").as_int(); // Accel scale setting 0 1 2 3
+  FS_SEL = this->get_parameter("gyro_scale").as_int(); // Gyro scale setting 0 1 2 3
+  Acc_SF = pow(2,AFS_SEL)*2;
+  Gyro_SF = pow(2,FS_SEL)*250;
+  acc_scale = Acc_SF/32768.0;
+  gyro_scale = Gyro_SF/32768.0;
+  // M_PI/180
   imu_pub_ = create_publisher<sensor_msgs::msg::Imu>("output", rclcpp::QoS{10});
 
   auto on_timer_ = std::bind(&Mpu6050Driver::onTimer, this);
@@ -69,8 +80,8 @@ void Mpu6050Driver::initializeI2C(){
     printf("ERROR : No device!!");
   }
   else{ // Set MPU6050 configuration registers
-    wiringPiI2CWriteReg8(fd_,GYRO_CONFIG,0);
-    wiringPiI2CWriteReg8(fd_,ACCEL_CONFIG,0);
+    wiringPiI2CWriteReg8(fd_, GYRO_CONFIG, FS_SEL << 3); // Shift 3 bits to the left to set Bit3 and Bit4
+    wiringPiI2CWriteReg8(fd_, ACCEL_CONFIG, AFS_SEL << 3); // Shift 3 bits to the left to set Bit3 and Bit4
   }
 }
 void Mpu6050Driver::onTimer()
@@ -83,16 +94,16 @@ void Mpu6050Driver::onTimer()
 
 void Mpu6050Driver::updateCurrentGyroData()
 {
-    gyro_.push_back(get2data(fd_, GYRO_X_OUT)/131.0);
-    gyro_.push_back(get2data(fd_, GYRO_Y_OUT)/131.0);
-    gyro_.push_back(get2data(fd_, GYRO_Z_OUT)/131.0);
+    gyro_.push_back(get2data(fd_, GYRO_X_OUT)*gyro_scale);
+    gyro_.push_back(get2data(fd_, GYRO_Y_OUT)*gyro_scale);
+    gyro_.push_back(get2data(fd_, GYRO_Z_OUT)*gyro_scale);
 }
 
 void Mpu6050Driver::updateCurrentAccelData()
 {
-    accel_.push_back(get2data(fd_, ACCEL_X_OUT)/16384.0);
-    accel_.push_back(get2data(fd_, ACCEL_Y_OUT)/16384.0);
-    accel_.push_back(get2data(fd_, ACCEL_Z_OUT)/16384.0);
+    accel_.push_back(get2data(fd_, ACCEL_X_OUT)*acc_scale);
+    accel_.push_back(get2data(fd_, ACCEL_Y_OUT)*acc_scale);
+    accel_.push_back(get2data(fd_, ACCEL_Z_OUT)*acc_scale);
 }
 
 float Mpu6050Driver::get2data(int fd_, unsigned int reg){
@@ -107,12 +118,13 @@ void Mpu6050Driver::imuDataPublish(){
   sensor_msgs::msg::Imu msg;
   msg.header.stamp = now();
   msg.header.frame_id = "imu";
-  msg.angular_velocity.x = gyro_[0];
-  msg.angular_velocity.y = gyro_[1];
-  msg.angular_velocity.z = gyro_[2];
-  msg.linear_acceleration.x = accel_[0];
-  msg.linear_acceleration.y = accel_[1];
-  msg.linear_acceleration.z = accel_[2];
+  // As stated in https://docs.ros.org/en/api/sensor_msgs/html/msg/Imu.html
+  msg.angular_velocity.x = gyro_[0]*(M_PI/180); // in rad/s
+  msg.angular_velocity.y = gyro_[1]*(M_PI/180);
+  msg.angular_velocity.z = gyro_[2]*(M_PI/180);
+  msg.linear_acceleration.x = accel_[0]*g; // in m/s^2
+  msg.linear_acceleration.y = accel_[1]*g;
+  msg.linear_acceleration.z = accel_[2]*g;
   imu_pub_->publish(msg);
   gyro_.clear();
   accel_.clear();
