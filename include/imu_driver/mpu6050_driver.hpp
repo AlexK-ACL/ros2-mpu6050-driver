@@ -50,6 +50,7 @@ private:
   int Gyro_SF;
   double acc_scale;
   double gyro_scale;
+  int do_calibration;
   // for wiringPiI2C
   int fd_;
 };

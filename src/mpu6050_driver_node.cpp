@@ -55,16 +55,25 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   // creates a parameter with the name timer_period and a default value of 100.
   this->declare_parameter("timer_period", 100); // The parameter type is inferred from the default value
   this->declare_parameter("g", 9.81);
-  this->declare_parameter("accel_scale", 0);
-  this->declare_parameter("gyro_scale", 0);
+  this->declare_parameter("AFS_SEL", 0);
+  this->declare_parameter("FS_SEL", 0);
+  this->declare_parameter("do_calibration", 0);
 
   // Get node update timer period
   timer_period = this->get_parameter("timer_period").as_int();
+  // Get g const
   g = this->get_parameter("g").as_double();
 
+  // Get measurements scaling constants
+  AFS_SEL = this->get_parameter("AFS_SEL").as_int(); // Accel scale setting 0 1 2 3
+  FS_SEL = this->get_parameter("FS_SEL").as_int(); // Gyro scale setting 0 1 2 3
+
+  // Get calibration setting
+  do_calibration = this->get_parameter("do_calibration").as_int();
+
+  RCLCPP_INFO(this->get_logger(), "Received parameters: timer_period=%d; g=%f; AFS_SEL=%d; FS_SEL=%d; do_calibration=%d", timer_period, g, AFS_SEL, FS_SEL, do_calibration);
+
   // Measurements scaling setup
-  AFS_SEL = this->get_parameter("accel_scale").as_int(); // Accel scale setting 0 1 2 3
-  FS_SEL = this->get_parameter("gyro_scale").as_int(); // Gyro scale setting 0 1 2 3
   Acc_SF = pow(2,AFS_SEL)*2;
   Gyro_SF = pow(2,FS_SEL)*250;
   acc_scale = Acc_SF/32768.0;
@@ -78,15 +87,21 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   this->get_node_timers_interface()->add_timer(timer_, nullptr);
 
   initializeI2C();
+  if (do_calibration == 1){
+    RCLCPP_INFO(this->get_logger(), "Starting calibration process");
+    
+  }
 }
 void Mpu6050Driver::initializeI2C(){
   fd_ = wiringPiI2CSetup(DEV_ADDR);
   if (fd_ == -1){
-    printf("ERROR : No device!!");
+    RCLCPP_ERROR(this->get_logger(),"ERROR : No device!!");
+    //printf("ERROR : No device!!");
   }
   else{ // Set MPU6050 configuration registers
     wiringPiI2CWriteReg8(fd_, GYRO_CONFIG, FS_SEL << 3); // Shift 3 bits to the left to set Bit3 and Bit4
     wiringPiI2CWriteReg8(fd_, ACCEL_CONFIG, AFS_SEL << 3); // Shift 3 bits to the left to set Bit3 and Bit4
+    RCLCPP_INFO(this->get_logger(), "Configured MPU6050 registers");
   }
 }
 void Mpu6050Driver::onTimer()

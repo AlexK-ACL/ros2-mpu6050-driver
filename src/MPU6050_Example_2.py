@@ -48,7 +48,6 @@ def display(x,y,z):
 
   print(x,y,z)
  
- 
 def readMPU(addr):
   high = bus.read_byte_data(Device_Address, addr)
   low = bus.read_byte_data(Device_Address, addr+1)
@@ -56,6 +55,7 @@ def readMPU(addr):
   if(value > 32768):
     value = value - 65536
   return value
+
 def accel():
   x = readMPU(ACCEL_X)
   y = readMPU(ACCEL_Y)
@@ -98,6 +98,7 @@ def calibrate():
   x=0
   y=0
   z=0
+  # Get the average of 50 measurements
   for i in range(50):
     x = x + readMPU(ACCEL_X)
     y = y + readMPU(ACCEL_Y)
@@ -105,6 +106,7 @@ def calibrate():
   x= x/50
   y= y/50
   z= z/50
+
   AxCal = x/16384.0
   AyCal = y/16384.0
   AzCal = z/16384.0
@@ -117,6 +119,7 @@ def calibrate():
   x=0
   y=0
   z=0
+  # Get the average of 50 measurements
   for i in range(50):
     x = x + readMPU(GYRO_X)
     y = y + readMPU(GYRO_Y)
