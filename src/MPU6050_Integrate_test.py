@@ -19,8 +19,13 @@ GYRO_XOUT_H  = 0x43
 GYRO_YOUT_H  = 0x45
 GYRO_ZOUT_H  = 0x47
 TEMP_OUT = 0x41
+
+bus = smbus.SMBus(1) 	# or bus = smbus.SMBus(0) for older version boards
+Device_Address = 0x68   # MPU6050 device address
+
 N_Calibrate = 50
-Refresh_Period = 0.01
+Refresh_Period = 0.01 # in sec
+
 # Measurements scaling setup
 g = 9.81
 AFS_SEL = 0 # Accel scale setting 0 1 2 3
@@ -103,6 +108,7 @@ def calibrate_Acc(N):
   AyCal = y * acc_scale
   AzCal = z * acc_scale
   print("Calibrate Acc Result....")
+  print("AxCal, AyCal, AzCal - in g")
   print(AxCal, AyCal, AzCal)
 
 def calibrate_Gyro(N):
@@ -126,14 +132,19 @@ def calibrate_Gyro(N):
   GyCal = y * gyro_scale
   GzCal = z * gyro_scale
   print("Calibrate Gyro Result....")
+  print("GxCal, GyCal, GzCal - deg/sec")
   print(GxCal, GyCal, GzCal)
 
-bus = smbus.SMBus(1) 	# or bus = smbus.SMBus(0) for older version boards
-Device_Address = 0x68   # MPU6050 device address
+# -------------------------------------------------------------------------------------------- Script start
+
 
 MPU_Init()
+
 print("Calibrate Gyro - Do not move....")
 calibrate_Gyro(N_Calibrate)
+# Initialize
+time_last_print = 0
+time_cur = 0
 # Initial angles
 dPhi_x = 0
 dPhi_y = 0
@@ -141,6 +152,7 @@ dPhi_z = 0
 
 
 print (" Reading Data of Gyroscope and Accelerometer")
+print (" Outputs angle increments")
 
 while True:
 	
@@ -166,6 +178,7 @@ while True:
 	#Ay = acc_y * acc_scale - AyCal
 	#Az = acc_z * acc_scale - AzCal
 	# Full scale range +/- 250 degree/sec as per sensitivity scale factor
+    # In degrees
 	Gx = gyro_x * gyro_scale  - GxCal # longitudinal axis
 	Gy = gyro_y * gyro_scale  - GxCal # lateral axis
 	Gz = gyro_z * gyro_scale  - GxCal
@@ -173,7 +186,12 @@ while True:
 	dPhi_x = dPhi_x + Gx*Refresh_Period
 	dPhi_y = dPhi_y + Gy*Refresh_Period
 	dPhi_z = dPhi_z + Gz*Refresh_Period
+	time_cur = time_cur + Refresh_Period
     
+	if (time_cur - time_last_print > 1):
+		print("dPhi_x, dPhi_y, dPhi_z - in degrees")
+		print(dPhi_x, dPhi_y, dPhi_z)
+
 	#print ("In deg/s and g:")
 	#print ("Gx=%.2f" %Gx, u'\u00b0'+ "/s", "\tGy=%.2f" %Gy, u'\u00b0'+ "/s", "\tGz=%.2f" %Gz, u'\u00b0'+ "/s", "\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az) 
 	
