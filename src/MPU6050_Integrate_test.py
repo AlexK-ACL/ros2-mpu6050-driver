@@ -23,7 +23,7 @@ TEMP_OUT = 0x41
 bus = smbus.SMBus(1) 	# or bus = smbus.SMBus(0) for older version boards
 Device_Address = 0x68   # MPU6050 device address
 
-N_Calibrate = 50
+N_Calibrate = 500
 Refresh_Period = 0.01 # in sec
 
 # Measurements scaling setup
@@ -188,9 +188,9 @@ while True:
 	dPhi_z = dPhi_z + Gz*Refresh_Period
 	time_cur = time_cur + Refresh_Period
     
-	if (time_cur - time_last_print > 1):
-		print("dPhi_x, dPhi_y, dPhi_z - in degrees")
-		print(dPhi_x, dPhi_y, dPhi_z)
+	if (time_cur - time_last_print > 5):
+		print("dPhi_x=%.2f" %dPhi_x, "dPhi_y=%.2f" %dPhi_y, "dPhi_z=%.2f" %dPhi_z, "- in degrees")
+		print("time=%.2f" %time_cur)
 
 	#print ("In deg/s and g:")
 	#print ("Gx=%.2f" %Gx, u'\u00b0'+ "/s", "\tGy=%.2f" %Gy, u'\u00b0'+ "/s", "\tGz=%.2f" %Gz, u'\u00b0'+ "/s", "\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az) 
