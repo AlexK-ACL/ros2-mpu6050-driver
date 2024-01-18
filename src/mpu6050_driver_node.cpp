@@ -54,6 +54,7 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
 
   // creates a parameter with the name timer_period and a default value of 100.
   this->declare_parameter("timer_period", 100); // The parameter type is inferred from the default value
+  this->declare_parameter("frame_id", "imu");
   this->declare_parameter("g", 9.81);
   this->declare_parameter("AFS_SEL", 0);
   this->declare_parameter("FS_SEL", 0);
@@ -61,6 +62,8 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
 
   // Get node update timer period
   timer_period = this->get_parameter("timer_period").as_int();
+  // Get output messsages frame_id
+  frame_id = this->get_parameter("frame_id").as_string();
   // Get g const
   g = this->get_parameter("g").as_double();
 
@@ -89,7 +92,7 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   initializeI2C();
   if (do_calibration == 1){
     RCLCPP_INFO(this->get_logger(), "Starting calibration process");
-    
+
   }
 }
 void Mpu6050Driver::initializeI2C(){
@@ -137,7 +140,7 @@ float Mpu6050Driver::get2data(int fd_, unsigned int reg){
 void Mpu6050Driver::imuDataPublish(){
   sensor_msgs::msg::Imu msg;
   msg.header.stamp = now();
-  msg.header.frame_id = "imu";
+  msg.header.frame_id = frame_id;
   // As stated in https://docs.ros.org/en/api/sensor_msgs/html/msg/Imu.html
   msg.angular_velocity.x = gyro_[0]*(M_PI/180); // in rad/s
   msg.angular_velocity.y = gyro_[1]*(M_PI/180);

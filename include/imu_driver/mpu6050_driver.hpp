@@ -43,6 +43,7 @@ private:
   std::vector<float> accel_;
   // Node parameters
   int timer_period;
+  std::string frame_id;
   double g;
   int FS_SEL;
   int AFS_SEL;
