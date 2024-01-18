@@ -3,7 +3,7 @@
   http://www.electronicwings.com
 '''
 import smbus          # import SMBus module of I2C
-from time import sleep          # import
+from time import sleep, time          # import
 from math import pi
 # Some MPU6050 Registers and their Address
 PWR_MGMT_1   = 0x6B
@@ -143,8 +143,13 @@ MPU_Init()
 print("Calibrate Gyro - Do not move....")
 calibrate_Gyro(N_Calibrate)
 # Initialize
-time_last_print = 0
-time_cur = 0
+#time_last_print = 0
+#time_cur = 0
+start_time = time()
+time_cur = start_time
+time_last = start_time
+time_last_print = start_time
+
 # Initial angles
 dPhi_x = 0
 dPhi_y = 0
@@ -165,6 +170,9 @@ while True:
   gyro_x = read_raw_data(GYRO_XOUT_H)
   gyro_y = read_raw_data(GYRO_YOUT_H)
   gyro_z = read_raw_data(GYRO_ZOUT_H)
+  time_cur = time()
+  dt = time_cur - time_last
+  time_last = time_cur
   
   #Read Temperature raw value
   #temp = read_raw_data(TEMP_OUT)
@@ -183,14 +191,16 @@ while True:
   Gy = gyro_y * gyro_scale  - GyCal # lateral axis
   Gz = gyro_z * gyro_scale  - GzCal
     # Angle increments
-  dPhi_x = dPhi_x + Gx*Refresh_Period
-  dPhi_y = dPhi_y + Gy*Refresh_Period
-  dPhi_z = dPhi_z + Gz*Refresh_Period
-  time_cur = time_cur + Refresh_Period
+  
+  dPhi_x = dPhi_x + Gx*dt
+  dPhi_y = dPhi_y + Gy*dt
+  dPhi_z = dPhi_z + Gz*dt
+  
+  #time_cur = time_cur + Refresh_Period
     
   if (time_cur - time_last_print > 2):
     print("dPhi_x=%.2f" %dPhi_x, "dPhi_y=%.2f" %dPhi_y, "dPhi_z=%.2f" %dPhi_z, "- in degrees")
-    print("time=%.2f" %time_cur)
+    print("time=%.2f" %(time_cur-start_time))
     time_last_print = time_cur
 
     #print ("In deg/s and g:")
@@ -208,5 +218,5 @@ while True:
     #print ("Gx=%.2f" %Gx, "rad/s", "\tGy=%.2f" %Gy, "rad/s", "\tGz=%.2f" %Gz, "rad/s", "\tAx=%.2f m/s/s" %Ax, "\tAy=%.2f m/s/s" %Ay, "\tAz=%.2f m/s/s" %Az)  
         
     #print ("Temperature=%.2f" %Temp_C, u'\u00b0' + "C")
-    
+
   sleep(Refresh_Period)

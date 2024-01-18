@@ -3,7 +3,7 @@
   http://www.electronicwings.com
 '''
 import smbus          # import SMBus module of I2C
-from time import sleep          # import
+from time import sleep, time          # import
 from math import pi
 # Some MPU6050 Registers and their Address
 PWR_MGMT_1   = 0x6B
@@ -106,7 +106,7 @@ def calibrate_Acc(N):
 
   AxCal = x * acc_scale
   AyCal = y * acc_scale
-  AzCal = z * acc_scale
+  AzCal = z * acc_scale - 1 # For vertical axis to be 1g
   print("Calibrate Acc Result....")
   print("AxCal, AyCal, AzCal - in g")
   print(AxCal, AyCal, AzCal)
@@ -145,8 +145,11 @@ calibrate_Acc(N_Calibrate)
 print("Calibrate Gyro - Do not move....")
 calibrate_Gyro(N_Calibrate)
 # Initialize
-time_last_print = 0
-time_cur = 0
+start_time = time()
+time_cur = start_time
+time_last = start_time
+time_last_print = start_time
+
 # Initial angles
 dPhi_x = 0
 dPhi_y = 0
@@ -185,10 +188,11 @@ while True:
   Gy = gyro_y * gyro_scale  - GyCal # lateral axis
   Gz = gyro_z * gyro_scale  - GzCal
     # Angle increments
+  time_cur = time()
   #dPhi_x = dPhi_x + Gx*Refresh_Period
   #dPhi_y = dPhi_y + Gy*Refresh_Period
   #dPhi_z = dPhi_z + Gz*Refresh_Period
-  time_cur = time_cur + Refresh_Period
+  #time_cur = time_cur + Refresh_Period
     
   Ax_ = Ax * g
   Ay_ = Ay * g
