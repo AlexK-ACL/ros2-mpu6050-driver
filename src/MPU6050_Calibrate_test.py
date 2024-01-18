@@ -140,6 +140,8 @@ def calibrate_Gyro(N):
 
 MPU_Init()
 
+print("Calibrate Accel - Do not move....")
+calibrate_Acc(N_Calibrate)
 print("Calibrate Gyro - Do not move....")
 calibrate_Gyro(N_Calibrate)
 # Initialize
@@ -152,14 +154,14 @@ dPhi_z = 0
 
 
 print (" Reading Data of Gyroscope and Accelerometer")
-print (" Outputs angle increments")
+print (" Outputs measurements")
 
 while True:
   
   #Read Accelerometer raw value
-  #acc_x = read_raw_data(ACCEL_XOUT_H) #Read just Gyro for angle test
-  #acc_y = read_raw_data(ACCEL_YOUT_H)
-  #acc_z = read_raw_data(ACCEL_ZOUT_H)
+  acc_x = read_raw_data(ACCEL_XOUT_H) #Read just Gyro for angle test
+  acc_y = read_raw_data(ACCEL_YOUT_H)
+  acc_z = read_raw_data(ACCEL_ZOUT_H)
   
   #Read Gyroscope raw value
   gyro_x = read_raw_data(GYRO_XOUT_H)
@@ -174,39 +176,39 @@ while True:
   #print (" gyro_x=", acc_x, " gyro_y=", gyro_y, " gyro_z=", gyro_z, " acc_x=", acc_x, " acc_y=", acc_y, " acc_z=", acc_z, " temp=", temp)
 
   # Full scale range at AFS_SEL=0 +/- 2g as per sensitivity scale factor 
-  #Ax = acc_x * acc_scale - AxCal
-  #Ay = acc_y * acc_scale - AyCal
-  #Az = acc_z * acc_scale - AzCal
+  Ax = acc_x * acc_scale - AxCal
+  Ay = acc_y * acc_scale - AyCal
+  Az = acc_z * acc_scale - AzCal
   # Full scale range +/- 250 degree/sec as per sensitivity scale factor
     # In degrees
   Gx = gyro_x * gyro_scale  - GxCal # longitudinal axis
   Gy = gyro_y * gyro_scale  - GyCal # lateral axis
   Gz = gyro_z * gyro_scale  - GzCal
     # Angle increments
-  dPhi_x = dPhi_x + Gx*Refresh_Period
-  dPhi_y = dPhi_y + Gy*Refresh_Period
-  dPhi_z = dPhi_z + Gz*Refresh_Period
+  #dPhi_x = dPhi_x + Gx*Refresh_Period
+  #dPhi_y = dPhi_y + Gy*Refresh_Period
+  #dPhi_z = dPhi_z + Gz*Refresh_Period
   time_cur = time_cur + Refresh_Period
+    
+  Ax_ = Ax * g
+  Ay_ = Ay * g
+  Az_ = Az * g
+
+  Gx_ = Gx * pi/180
+  Gy_ = Gy * pi/180
+  Gz_ = Gz * pi/180
     
   if (time_cur - time_last_print > 2):
     print("dPhi_x=%.2f" %dPhi_x, "dPhi_y=%.2f" %dPhi_y, "dPhi_z=%.2f" %dPhi_z, "- in degrees")
     print("time=%.2f" %time_cur)
     time_last_print = time_cur
 
-    #print ("In deg/s and g:")
-    #print ("Gx=%.2f" %Gx, u'\u00b0'+ "/s", "\tGy=%.2f" %Gy, u'\u00b0'+ "/s", "\tGz=%.2f" %Gz, u'\u00b0'+ "/s", "\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az) 
+    print ("In deg/s and g:")
+    print ("Gx=%.2f" %Gx, u'\u00b0'+ "/s", "\tGy=%.2f" %Gy, u'\u00b0'+ "/s", "\tGz=%.2f" %Gz, u'\u00b0'+ "/s", "\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az) 
+
+    print ("In rad/s and m/s^2:")
+    print ("Gx=%.2f" %Gx_, "rad/s", "\tGy=%.2f" %Gy_, "rad/s", "\tGz=%.2f" %Gz_, "rad/s", "\tAx=%.2f m/s/s" %Ax_, "\tAy=%.2f m/s/s" %Ay_, "\tAz=%.2f m/s/s" %Az_)  
     
-    #Ax = acc_x * acc_scale * g
-    #Ay = acc_y * acc_scale * g
-    #Az = acc_z * acc_scale * g
-
-    #Gx = gyro_x * gyro_scale * pi/180
-    #Gy = gyro_y * gyro_scale * pi/180
-    #Gz = gyro_z * gyro_scale * pi/180
-
-    #print ("In rad/s and m/s^2:")
-    #print ("Gx=%.2f" %Gx, "rad/s", "\tGy=%.2f" %Gy, "rad/s", "\tGz=%.2f" %Gz, "rad/s", "\tAx=%.2f m/s/s" %Ax, "\tAy=%.2f m/s/s" %Ay, "\tAz=%.2f m/s/s" %Az)  
-        
     #print ("Temperature=%.2f" %Temp_C, u'\u00b0' + "C")
     
   sleep(Refresh_Period)
