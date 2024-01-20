@@ -46,7 +46,7 @@
 
 #define DEV_ADDR     0x68    // MPU6050 device I2C address 
 
-#define BUFFER_SIZE  100 // Calibration set size
+#define BUFFER_SIZE  200 // Calibration set size
 
 Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOptions & node_options)
 : rclcpp::Node(node_name, node_options)
@@ -81,9 +81,9 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   // Measurements scaling setup
   Acc_SF = pow(2, AFS_SEL) * 2;
   Gyro_SF = pow(2, FS_SEL) * 250;
-  acc_scale = Acc_SF/32768.0;
-  gyro_scale = Gyro_SF/32768.0;
-  RCLCPP_INFO(this->get_logger(), "Ranges are set to +-%f g; +-%f deg/s", Acc_SF, Gyro_SF);
+  acc_scale = (double)Acc_SF / 32768.0;
+  gyro_scale = (double)Gyro_SF / 32768.0;
+  RCLCPP_INFO(this->get_logger(), "Ranges are set to +-%d g; +-%d deg/s", Acc_SF, Gyro_SF);
   // M_PI/180
   imu_pub_ = create_publisher<sensor_msgs::msg::Imu>("output", rclcpp::QoS{10});
 
@@ -106,12 +106,13 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
     GyroOffset[0] = 0;
     GyroOffset[1] = 0;
     GyroOffset[2] = 0;
-    delay(10);
+    delay(2);
     for (uint8_t n = 0; n < 10; n++) {     // 10 iterations of calibration
       for (uint8_t j = 0; j < 6; j++) {    // reset calibration array
         offsets[j] = 0;
+        offsetsOld[j] = 0;
       }
-      for (uint8_t i = 0; i < 100 + BUFFER_SIZE; i++) {
+      for (int i = 0; i < 100 + BUFFER_SIZE; i++) {
         // Measuring BUFFER_SIZE times to get mean values
         mpuGet[0] = get2data(fd_, ACCEL_X_OUT) - AccelOffset[0];
         mpuGet[1] = get2data(fd_, ACCEL_Y_OUT) - AccelOffset[1];
