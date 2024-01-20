@@ -46,7 +46,7 @@
 
 #define DEV_ADDR     0x68    // MPU6050 device I2C address 
 
-#define BUFFER_SIZE  200 // Calibration set size
+#define N_Calibrate 500 // Calibration set size
 
 Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOptions & node_options)
 : rclcpp::Node(node_name, node_options)
@@ -93,26 +93,27 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   this->get_node_timers_interface()->add_timer(timer_, nullptr);
 
   initializeI2C();
+  // reset offsets
+  AccelOffset[0] = 0;
+  AccelOffset[1] = 0;
+  AccelOffset[2] = 0;
+  GyroOffset[0] = 0;
+  GyroOffset[1] = 0;
+  GyroOffset[2] = 0;
+  //
   if (do_calibration == 1){
     RCLCPP_INFO(this->get_logger(), "Starting calibration process");
     //
     long offsets[6];
     long offsetsOld[6];
     float mpuGet[6];
-    // reset offsets
-    AccelOffset[0] = 0;
-    AccelOffset[1] = 0;
-    AccelOffset[2] = 0;
-    GyroOffset[0] = 0;
-    GyroOffset[1] = 0;
-    GyroOffset[2] = 0;
     delay(2);
     for (uint8_t n = 0; n < 10; n++) {     // 10 iterations of calibration
       for (uint8_t j = 0; j < 6; j++) {    // reset calibration array
         offsets[j] = 0;
         offsetsOld[j] = 0;
       }
-      for (int i = 0; i < 100 + BUFFER_SIZE; i++) {
+      for (int i = 0; i < 100 + N_Calibrate; i++) {
         // Measuring BUFFER_SIZE times to get mean values
         mpuGet[0] = get2data(fd_, ACCEL_X_OUT) - AccelOffset[0];
         mpuGet[1] = get2data(fd_, ACCEL_Y_OUT) - AccelOffset[1];
@@ -126,9 +127,10 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
             offsets[j] += (long)mpuGet[j];    // accumulating measurements
           }
         }
+        delay(1);
       }
       for (uint8_t i = 0; i < 6; i++) {
-        offsets[i] = offsetsOld[i] + ((long)offsets[i] / BUFFER_SIZE); // accounting previous iteration offsets
+        offsets[i] = offsetsOld[i] + ((long)offsets[i] / N_Calibrate); // accounting previous iteration offsets
         if (i == 2) offsets[i] -= 16384;                               // Z axis should measure 1g, so tying it to 16384
         offsetsOld[i] = offsets[i];
       }
@@ -139,20 +141,13 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
       GyroOffset[0] = (float)offsets[3];
       GyroOffset[1] = (float)offsets[4];
       GyroOffset[2] = (float)offsets[5];
-      delay(2);
+      delay(5);
     }
     RCLCPP_INFO(this->get_logger(), "Calibration ended. Offsets are:");
     RCLCPP_INFO(this->get_logger(), "ax=%.2f; ay=%.2f; az=%.2f; gx=%.2f; gy=%.2f; gz=%.2f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
     //
   }
-  else{
-    AccelOffset[0] = 0;
-    AccelOffset[1] = 0;
-    AccelOffset[2] = 0;
-    GyroOffset[0] = 0;
-    GyroOffset[1] = 0;
-    GyroOffset[2] = 0;
-  }
+  RCLCPP_INFO(this->get_logger(), "Starting measurements");
 }
 
 void Mpu6050Driver::initializeI2C(){
