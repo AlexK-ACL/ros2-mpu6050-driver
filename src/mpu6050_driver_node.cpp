@@ -24,7 +24,7 @@
 //#include <linux/i2c-dev.h>
 //#include <i2c/smbus.h>
 
-#define SMPRT_DIV    0x19 // Register 25 – Sample Rate Divider SMPRT_DIV; Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV)
+#define SMPLRT_DIV    0x19 // Register 25 – Sample Rate Divider SMPRT_DIV; Sample Rate = Gyroscope Output Rate / (1 + SMPLRT_DIV)
 #define CONFIG       0x1A // Register 26 – Configuration - This register configures the external Frame Synchronization (FSYNC) EXT_SYNC_SET pin sampling and the Digital Low Pass Filter (DLPF) DLPF_CFG setting for both the gyroscopes and accelerometers.
 #define PWR_MGMT_1   0x6B  //PWR_MGMT_1
 #define PWR_MGMT_2   0x6C  //PWR_MGMT_2
@@ -77,10 +77,11 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   RCLCPP_INFO(this->get_logger(), "Received parameters: timer_period=%d; g=%f; AFS_SEL=%d; FS_SEL=%d; do_calibration=%d", timer_period, g, AFS_SEL, FS_SEL, do_calibration);
 
   // Measurements scaling setup
-  Acc_SF = pow(2,AFS_SEL)*2;
-  Gyro_SF = pow(2,FS_SEL)*250;
+  Acc_SF = pow(2, AFS_SEL) * 2;
+  Gyro_SF = pow(2, FS_SEL) * 250;
   acc_scale = Acc_SF/32768.0;
   gyro_scale = Gyro_SF/32768.0;
+  RCLCPP_INFO(this->get_logger(), "Ranges are +-%f g; +-%f deg/s", acc_scale, gyro_scale);
   // M_PI/180
   imu_pub_ = create_publisher<sensor_msgs::msg::Imu>("output", rclcpp::QoS{10});
 
@@ -95,6 +96,7 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
 
   }
 }
+
 void Mpu6050Driver::initializeI2C(){
   fd_ = wiringPiI2CSetup(DEV_ADDR);
   if (fd_ == -1){
@@ -102,11 +104,15 @@ void Mpu6050Driver::initializeI2C(){
     //printf("ERROR : No device!!");
   }
   else{ // Set MPU6050 configuration registers
+    wiringPiI2CWriteReg8(fd_, SMPLRT_DIV, 7);
+    wiringPiI2CWriteReg8(fd_, PWR_MGMT_1, 1);
+    wiringPiI2CWriteReg8(fd_, CONFIG, 0);
     wiringPiI2CWriteReg8(fd_, GYRO_CONFIG, FS_SEL << 3); // Shift 3 bits to the left to set Bit3 and Bit4
     wiringPiI2CWriteReg8(fd_, ACCEL_CONFIG, AFS_SEL << 3); // Shift 3 bits to the left to set Bit3 and Bit4
     RCLCPP_INFO(this->get_logger(), "Configured MPU6050 registers");
   }
 }
+
 void Mpu6050Driver::onTimer()
 {
   updateCurrentGyroData();
@@ -117,16 +123,16 @@ void Mpu6050Driver::onTimer()
 
 void Mpu6050Driver::updateCurrentGyroData()
 {
-    gyro_.push_back(get2data(fd_, GYRO_X_OUT)*gyro_scale);
-    gyro_.push_back(get2data(fd_, GYRO_Y_OUT)*gyro_scale);
-    gyro_.push_back(get2data(fd_, GYRO_Z_OUT)*gyro_scale);
+    gyro_.push_back(get2data(fd_, GYRO_X_OUT) * gyro_scale);
+    gyro_.push_back(get2data(fd_, GYRO_Y_OUT) * gyro_scale);
+    gyro_.push_back(get2data(fd_, GYRO_Z_OUT) * gyro_scale);
 }
 
 void Mpu6050Driver::updateCurrentAccelData()
 {
-    accel_.push_back(get2data(fd_, ACCEL_X_OUT)*acc_scale);
-    accel_.push_back(get2data(fd_, ACCEL_Y_OUT)*acc_scale);
-    accel_.push_back(get2data(fd_, ACCEL_Z_OUT)*acc_scale);
+    accel_.push_back(get2data(fd_, ACCEL_X_OUT) * acc_scale);
+    accel_.push_back(get2data(fd_, ACCEL_Y_OUT) * acc_scale);
+    accel_.push_back(get2data(fd_, ACCEL_Z_OUT) * acc_scale);
 }
 
 float Mpu6050Driver::get2data(int fd_, unsigned int reg){
@@ -142,9 +148,9 @@ void Mpu6050Driver::imuDataPublish(){
   msg.header.stamp = now();
   msg.header.frame_id = frame_id;
   // As stated in https://docs.ros.org/en/api/sensor_msgs/html/msg/Imu.html
-  msg.angular_velocity.x = gyro_[0]*(M_PI/180); // in rad/s
-  msg.angular_velocity.y = gyro_[1]*(M_PI/180);
-  msg.angular_velocity.z = gyro_[2]*(M_PI/180);
+  msg.angular_velocity.x = gyro_[0]*(M_PI/180.0); // in rad/s
+  msg.angular_velocity.y = gyro_[1]*(M_PI/180.0);
+  msg.angular_velocity.z = gyro_[2]*(M_PI/180.0);
   msg.linear_acceleration.x = accel_[0]*g; // in m/s^2
   msg.linear_acceleration.y = accel_[1]*g;
   msg.linear_acceleration.z = accel_[2]*g;
