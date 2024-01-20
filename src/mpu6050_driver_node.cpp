@@ -127,8 +127,8 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
         }
       }
       for (uint8_t i = 0; i < 6; i++) {
-        offsets[i] = offsetsOld[i] - ((long)offsets[i] / BUFFER_SIZE); // accounting previous iteration offsets
-        if (i == 2) offsets[i] += 16384;                               // Z axis should measure 1g, so tying it to 16384
+        offsets[i] = offsetsOld[i] + ((long)offsets[i] / BUFFER_SIZE); // accounting previous iteration offsets
+        if (i == 2) offsets[i] -= 16384;                               // Z axis should measure 1g, so tying it to 16384
         offsetsOld[i] = offsets[i];
       }
       // setting new offsets
@@ -141,7 +141,7 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
       delay(2);
     }
     RCLCPP_INFO(this->get_logger(), "Calibration ended. Offsets are:");
-    RCLCPP_INFO(this->get_logger(), "ax=%d; ay=%d; az=%d; gx=%d; gy=%d; gz=%d",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
+    RCLCPP_INFO(this->get_logger(), "ax=%.2f; ay=%.2f; az=%.2f; gx=%.2f; gy=%.2f; gz=%.2f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
     //
   }
   else{
