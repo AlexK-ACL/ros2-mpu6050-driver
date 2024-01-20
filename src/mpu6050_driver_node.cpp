@@ -46,6 +46,8 @@
 
 #define DEV_ADDR     0x68    // MPU6050 device I2C address 
 
+#define BUFFER_SIZE  100 // Calibration set size
+
 Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOptions & node_options)
 : rclcpp::Node(node_name, node_options)
 {
@@ -81,7 +83,7 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   Gyro_SF = pow(2, FS_SEL) * 250;
   acc_scale = Acc_SF/32768.0;
   gyro_scale = Gyro_SF/32768.0;
-  RCLCPP_INFO(this->get_logger(), "Ranges are +-%f g; +-%f deg/s", acc_scale, gyro_scale);
+  RCLCPP_INFO(this->get_logger(), "Ranges are set to +-%f g; +-%f deg/s", Acc_SF, Gyro_SF);
   // M_PI/180
   imu_pub_ = create_publisher<sensor_msgs::msg::Imu>("output", rclcpp::QoS{10});
 
@@ -93,7 +95,62 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   initializeI2C();
   if (do_calibration == 1){
     RCLCPP_INFO(this->get_logger(), "Starting calibration process");
-
+    //
+    long offsets[6];
+    long offsetsOld[6];
+    float mpuGet[6];
+    // reset offsets
+    AccelOffset[0] = 0;
+    AccelOffset[1] = 0;
+    AccelOffset[2] = 0;
+    GyroOffset[0] = 0;
+    GyroOffset[1] = 0;
+    GyroOffset[2] = 0;
+    delay(10);
+    for (uint8_t n = 0; n < 10; n++) {     // 10 iterations of calibration
+      for (uint8_t j = 0; j < 6; j++) {    // reset calibration array
+        offsets[j] = 0;
+      }
+      for (uint8_t i = 0; i < 100 + BUFFER_SIZE; i++) {
+        // Measuring BUFFER_SIZE times to get mean values
+        mpuGet[0] = get2data(fd_, ACCEL_X_OUT) - AccelOffset[0];
+        mpuGet[1] = get2data(fd_, ACCEL_Y_OUT) - AccelOffset[1];
+        mpuGet[2] = get2data(fd_, ACCEL_Z_OUT) - AccelOffset[2];
+        mpuGet[3] = get2data(fd_, GYRO_X_OUT) - GyroOffset[0];
+        mpuGet[4] = get2data(fd_, GYRO_Y_OUT) - GyroOffset[1];
+        mpuGet[5] = get2data(fd_, GYRO_Z_OUT) - GyroOffset[2];
+        // Skipping first 99 measurements
+        if (i >= 99) {
+          for (uint8_t j = 0; j < 6; j++) {
+            offsets[j] += (long)mpuGet[j];    // accumulating measurements
+          }
+        }
+      }
+      for (uint8_t i = 0; i < 6; i++) {
+        offsets[i] = offsetsOld[i] - ((long)offsets[i] / BUFFER_SIZE); // accounting previous iteration offsets
+        if (i == 2) offsets[i] += 16384;                               // Z axis should measure 1g, so tying it to 16384
+        offsetsOld[i] = offsets[i];
+      }
+      // setting new offsets
+      AccelOffset[0] = (float)offsets[0];
+      AccelOffset[1] = (float)offsets[1];
+      AccelOffset[2] = (float)offsets[2];
+      GyroOffset[0] = (float)offsets[3];
+      GyroOffset[1] = (float)offsets[4];
+      GyroOffset[2] = (float)offsets[5];
+      delay(2);
+    }
+    RCLCPP_INFO(this->get_logger(), "Calibration ended. Offsets are:");
+    RCLCPP_INFO(this->get_logger(), "ax=%d; ay=%d; az=%d; gx=%d; gy=%d; gz=%d",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
+    //
+  }
+  else{
+    AccelOffset[0] = 0;
+    AccelOffset[1] = 0;
+    AccelOffset[2] = 0;
+    GyroOffset[0] = 0;
+    GyroOffset[1] = 0;
+    GyroOffset[2] = 0;
   }
 }
 
@@ -117,22 +174,22 @@ void Mpu6050Driver::onTimer()
 {
   updateCurrentGyroData();
   updateCurrentAccelData();
-  calcRollPitch(); 
+  //calcRollPitch(); 
   imuDataPublish();
 }
 
 void Mpu6050Driver::updateCurrentGyroData()
 {
-    gyro_.push_back(get2data(fd_, GYRO_X_OUT) * gyro_scale);
-    gyro_.push_back(get2data(fd_, GYRO_Y_OUT) * gyro_scale);
-    gyro_.push_back(get2data(fd_, GYRO_Z_OUT) * gyro_scale);
+    gyro_.push_back((get2data(fd_, GYRO_X_OUT)-GyroOffset[0]) * gyro_scale);
+    gyro_.push_back((get2data(fd_, GYRO_Y_OUT)-GyroOffset[1]) * gyro_scale);
+    gyro_.push_back((get2data(fd_, GYRO_Z_OUT)-GyroOffset[2]) * gyro_scale);
 }
 
 void Mpu6050Driver::updateCurrentAccelData()
 {
-    accel_.push_back(get2data(fd_, ACCEL_X_OUT) * acc_scale);
-    accel_.push_back(get2data(fd_, ACCEL_Y_OUT) * acc_scale);
-    accel_.push_back(get2data(fd_, ACCEL_Z_OUT) * acc_scale);
+    accel_.push_back((get2data(fd_, ACCEL_X_OUT)-AccelOffset[0]) * acc_scale);
+    accel_.push_back((get2data(fd_, ACCEL_Y_OUT)-AccelOffset[1]) * acc_scale);
+    accel_.push_back((get2data(fd_, ACCEL_Z_OUT)-AccelOffset[2]) * acc_scale);
 }
 
 float Mpu6050Driver::get2data(int fd_, unsigned int reg){
@@ -148,12 +205,12 @@ void Mpu6050Driver::imuDataPublish(){
   msg.header.stamp = now();
   msg.header.frame_id = frame_id;
   // As stated in https://docs.ros.org/en/api/sensor_msgs/html/msg/Imu.html
-  msg.angular_velocity.x = gyro_[0]*(M_PI/180.0); // in rad/s
-  msg.angular_velocity.y = gyro_[1]*(M_PI/180.0);
-  msg.angular_velocity.z = gyro_[2]*(M_PI/180.0);
-  msg.linear_acceleration.x = accel_[0]*g; // in m/s^2
-  msg.linear_acceleration.y = accel_[1]*g;
-  msg.linear_acceleration.z = accel_[2]*g;
+  msg.angular_velocity.x = gyro_[0] * (M_PI/180.0); // in rad/s
+  msg.angular_velocity.y = gyro_[1] * (M_PI/180.0);
+  msg.angular_velocity.z = gyro_[2] * (M_PI/180.0);
+  msg.linear_acceleration.x = accel_[0] * g; // in m/s^2
+  msg.linear_acceleration.y = accel_[1] * g;
+  msg.linear_acceleration.z = accel_[2] * g;
   imu_pub_->publish(msg);
   gyro_.clear();
   accel_.clear();
@@ -161,7 +218,7 @@ void Mpu6050Driver::imuDataPublish(){
 
 void Mpu6050Driver::calcRollPitch()
 {
-  float roll = std::atan(accel_[1]/accel_[2])*57.324;
-  float pitch = std::atan(-accel_[0]/std::sqrt(accel_[1]*accel_[1] + accel_[2]*accel_[2]))*57.324;
-  printf("roll=%.2f ; pitch=%.2f", roll, pitch);
+  //float roll = std::atan(accel_[1]/accel_[2])*57.324;
+  //float pitch = std::atan(-accel_[0]/std::sqrt(accel_[1]*accel_[1] + accel_[2]*accel_[2]))*57.324;
+  //printf("roll=%.2f ; pitch=%.2f", roll, pitch);
 }

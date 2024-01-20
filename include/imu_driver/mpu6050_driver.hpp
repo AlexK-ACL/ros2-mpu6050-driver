@@ -52,6 +52,8 @@ private:
   double acc_scale;
   double gyro_scale;
   int do_calibration;
+  float AccelOffset[3];
+  float GyroOffset[3];
   // for wiringPiI2C
   int fd_;
 };
