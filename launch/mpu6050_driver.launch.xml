@@ -6,6 +6,7 @@
   <arg name="g" default="9.81" description="Sets gravitational acceleration constant within the node" />
   <arg name="AFS_SEL" default="0" description="Sets accel scale setting to one of the modes: 0(+-2g) 1(+-4g) 2(+-8g) 3(+-16g)" />
   <arg name="FS_SEL" default="0" description="Sets gyro scale setting to one of the modes: 0(+-250) 1(+-500) 2(+-1000) 3(+-2000)" />
+  <arg name="do_calibration" default="0" description="Set 1 to enable calibration,  0 - No calibration" />
 
   <node name="imu_driver" pkg="imu_driver" exec="imu_driver">
     <remap from="output" to="$(var output_imu_name)" /> <!-- Redirects output topic -->
@@ -14,5 +15,6 @@
     <param name="g" value="$(var g)" />
     <param name="AFS_SEL" value="$(var AFS_SEL)" />
     <param name="FS_SEL" value="$(var FS_SEL)" />
+    <param name="do_calibration" value="$(var do_calibration)" />
   </node>
 </launch>
