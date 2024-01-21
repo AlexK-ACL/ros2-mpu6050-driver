@@ -107,42 +107,35 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
     long offsets[6];
     long offsetsOld[6];
     float mpuGet[6];
-    delay(2);
-    for (uint8_t n = 0; n < 10; n++) {     // 10 iterations of calibration
-      for (uint8_t j = 0; j < 6; j++) {    // reset calibration array
+    for (uint8_t j = 0; j < 6; j++) {    // reset calibration array
         offsets[j] = 0;
-        offsetsOld[j] = 0;
-      }
-      for (int i = 0; i < 100 + N_Calibrate; i++) {
-        // Measuring BUFFER_SIZE times to get mean values
-        mpuGet[0] = get2data(fd_, ACCEL_X_OUT) - AccelOffset[0];
-        mpuGet[1] = get2data(fd_, ACCEL_Y_OUT) - AccelOffset[1];
-        mpuGet[2] = get2data(fd_, ACCEL_Z_OUT) - AccelOffset[2];
-        mpuGet[3] = get2data(fd_, GYRO_X_OUT) - GyroOffset[0];
-        mpuGet[4] = get2data(fd_, GYRO_Y_OUT) - GyroOffset[1];
-        mpuGet[5] = get2data(fd_, GYRO_Z_OUT) - GyroOffset[2];
-        // Skipping first 99 measurements
-        if (i >= 99) {
-          for (uint8_t j = 0; j < 6; j++) {
-            offsets[j] += (long)mpuGet[j];    // accumulating measurements
-          }
-        }
-        delay(1);
-      }
-      for (uint8_t i = 0; i < 6; i++) {
-        offsets[i] = offsetsOld[i] + ((long)offsets[i] / N_Calibrate); // accounting previous iteration offsets
-        if (i == 2) offsets[i] -= 16384;                               // Z axis should measure 1g, so tying it to 16384
-        offsetsOld[i] = offsets[i];
-      }
-      // setting new offsets
-      AccelOffset[0] = (float)offsets[0];
-      AccelOffset[1] = (float)offsets[1];
-      AccelOffset[2] = (float)offsets[2];
-      GyroOffset[0] = (float)offsets[3];
-      GyroOffset[1] = (float)offsets[4];
-      GyroOffset[2] = (float)offsets[5];
-      delay(5);
     }
+    for (int i = 0; i < N_Calibrate; i++) {
+      // Measuring N_Calibrate times to get mean values
+      mpuGet[0] = get2data(fd_, ACCEL_X_OUT);
+      mpuGet[1] = get2data(fd_, ACCEL_Y_OUT);
+      mpuGet[2] = get2data(fd_, ACCEL_Z_OUT);
+      mpuGet[3] = get2data(fd_, GYRO_X_OUT);
+      mpuGet[4] = get2data(fd_, GYRO_Y_OUT);
+      mpuGet[5] = get2data(fd_, GYRO_Z_OUT);
+      for (uint8_t j = 0; j < 6; j++) {
+          offsets[j] += (long)mpuGet[j];    // accumulating measurements
+      }
+      delay(10);
+    }
+    for (uint8_t i = 0; i < 6; i++) {
+        offsets[i] = offsets[i] + ((long)offsets[i] / N_Calibrate); // accounting previous iteration offsets
+        if (i == 2) offsets[i] -= 32768/Acc_SF;                               // Z axis should measure 1g, so tying it to 16384
+    }
+    
+    // setting new offsets
+    AccelOffset[0] = (float)offsets[0];
+    AccelOffset[1] = (float)offsets[1];
+    AccelOffset[2] = (float)offsets[2];
+    GyroOffset[0] = (float)offsets[3];
+    GyroOffset[1] = (float)offsets[4];
+    GyroOffset[2] = (float)offsets[5];
+
     RCLCPP_INFO(this->get_logger(), "Calibration ended. Offsets are:");
     RCLCPP_INFO(this->get_logger(), "ax=%.2f; ay=%.2f; az=%.2f; gx=%.2f; gy=%.2f; gz=%.2f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
     //
