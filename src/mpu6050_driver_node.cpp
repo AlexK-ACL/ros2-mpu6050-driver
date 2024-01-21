@@ -104,8 +104,8 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   if (do_calibration == 1){
     RCLCPP_INFO(this->get_logger(), "Starting calibration process");
     //
-    long offsets[6];
-    long offsetsOld[6];
+    double offsets[6];
+    //long offsetsOld[6];
     float mpuGet[6];
     for (uint8_t j = 0; j < 6; j++) {    // reset calibration array
         offsets[j] = 0;
@@ -119,22 +119,22 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
       mpuGet[4] = get2data(fd_, GYRO_Y_OUT);
       mpuGet[5] = get2data(fd_, GYRO_Z_OUT);
       for (uint8_t j = 0; j < 6; j++) {
-          offsets[j] += (long)mpuGet[j];    // accumulating measurements
+          offsets[j] += (double)mpuGet[j];    // accumulating raw measurements
       }
       delay(10);
     }
     for (uint8_t i = 0; i < 6; i++) {
-        offsets[i] = offsets[i] + ((long)offsets[i] / N_Calibrate); // accounting previous iteration offsets
-        if (i == 2) offsets[i] -= 32768/Acc_SF;                               // Z axis should measure 1g, so tying it to 16384
+        offsets[i] = (offsets[i] / N_Calibrate); // meaning values
+        //if (i == 2) offsets[i] -= 32768.0/Acc_SF;  
     }
     
     // setting new offsets
-    AccelOffset[0] = (float)offsets[0];
-    AccelOffset[1] = (float)offsets[1];
-    AccelOffset[2] = (float)offsets[2];
-    GyroOffset[0] = (float)offsets[3];
-    GyroOffset[1] = (float)offsets[4];
-    GyroOffset[2] = (float)offsets[5];
+    AccelOffset[0] = (float)(offsets[0] * acc_scale);
+    AccelOffset[1] = (float)(offsets[1] * acc_scale);
+    AccelOffset[2] = (float)(offsets[2] * acc_scale - 1); // Z axis accel should measure 1g, so tying it to that
+    GyroOffset[0] = (float)(offsets[3] * gyro_scale);
+    GyroOffset[1] = (float)(offsets[4] * gyro_scale);
+    GyroOffset[2] = (float)(offsets[5] * gyro_scale);
 
     RCLCPP_INFO(this->get_logger(), "Calibration ended. Offsets are:");
     RCLCPP_INFO(this->get_logger(), "ax=%.2f; ay=%.2f; az=%.2f; gx=%.2f; gy=%.2f; gz=%.2f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
@@ -169,16 +169,16 @@ void Mpu6050Driver::onTimer()
 
 void Mpu6050Driver::updateCurrentGyroData()
 {
-    gyro_.push_back((get2data(fd_, GYRO_X_OUT)-GyroOffset[0]) * gyro_scale);
-    gyro_.push_back((get2data(fd_, GYRO_Y_OUT)-GyroOffset[1]) * gyro_scale);
-    gyro_.push_back((get2data(fd_, GYRO_Z_OUT)-GyroOffset[2]) * gyro_scale);
+    gyro_.push_back((get2data(fd_, GYRO_X_OUT) * gyro_scale) - GyroOffset[0]);
+    gyro_.push_back((get2data(fd_, GYRO_Y_OUT) * gyro_scale) - GyroOffset[1]);
+    gyro_.push_back((get2data(fd_, GYRO_Z_OUT) * gyro_scale) - GyroOffset[2]);
 }
 
 void Mpu6050Driver::updateCurrentAccelData()
 {
-    accel_.push_back((get2data(fd_, ACCEL_X_OUT)-AccelOffset[0]) * acc_scale);
-    accel_.push_back((get2data(fd_, ACCEL_Y_OUT)-AccelOffset[1]) * acc_scale);
-    accel_.push_back((get2data(fd_, ACCEL_Z_OUT)-AccelOffset[2]) * acc_scale);
+    accel_.push_back((get2data(fd_, ACCEL_X_OUT) * acc_scale) - AccelOffset[0]);
+    accel_.push_back((get2data(fd_, ACCEL_Y_OUT) * acc_scale) - AccelOffset[1]);
+    accel_.push_back((get2data(fd_, ACCEL_Z_OUT) * acc_scale) - AccelOffset[2]);
 }
 
 float Mpu6050Driver::get2data(int fd_, unsigned int reg){
