@@ -118,6 +118,7 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
     }
     //
     RCLCPP_INFO(this->get_logger(), "Starting calibration process");
+    rclcpp::Time time0 = now();
     //
     double offsets[6];
     //long offsetsOld[6];
@@ -150,9 +151,9 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
     GyroOffset[0] = (float)(offsets[3] * gyro_scale);
     GyroOffset[1] = (float)(offsets[4] * gyro_scale);
     GyroOffset[2] = (float)(offsets[5] * gyro_scale);
-
+    RCLCPP_INFO(this->get_logger(), "Elapsed time: %f", (now()-time0));
     RCLCPP_INFO(this->get_logger(), "Calibration ended. Offsets are:");
-    RCLCPP_INFO(this->get_logger(), "ax=%.2f; ay=%.2f; az=%.2f; gx=%.2f; gy=%.2f; gz=%.2f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
+    RCLCPP_INFO(this->get_logger(), "ax=%f; ay=%f; az=%f;\n gx=%f; gy=%f; gz=%f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
     //
   }
   // Initialize quaternion
