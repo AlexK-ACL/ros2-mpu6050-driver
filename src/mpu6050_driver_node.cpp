@@ -273,7 +273,7 @@ void Mpu6050Driver::calcQuaternion()
 
 void Mpu6050Driver::calcAttitude()
 {
-  Roll += gyro_[0] * (timer_period/1000);
-  Pitch += gyro_[1] * (timer_period/1000);
-  Yaw += gyro_[2] * (timer_period/1000);
+  Roll += (gyro_[0] * ((double)timer_period/1000.0));
+  Pitch += (gyro_[1] * ((double)timer_period/1000.0));
+  Yaw += (gyro_[2] * ((double)timer_period/1000.0));
 }
