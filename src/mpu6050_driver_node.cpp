@@ -81,7 +81,7 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   // Get calibration setting
   do_calibration = this->get_parameter("do_calibration").as_int();
 
-  RCLCPP_INFO(this->get_logger(), "Received parameters: timer_period=%d; g=%f; AFS_SEL=%d; FS_SEL=%d; do_calibration=%d", timer_period, g, AFS_SEL, FS_SEL, do_calibration);
+  RCLCPP_INFO(this->get_logger(), "Received parameters:\n timer_period=%d; g=%f;\n AFS_SEL=%d; FS_SEL=%d; do_calibration=%d", timer_period, g, AFS_SEL, FS_SEL, do_calibration);
 
   // Measurements scaling setup
   Acc_SF = pow(2, AFS_SEL) * 2;
@@ -117,15 +117,16 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
       N_Calibrate = do_calibration;
     }
     //
-    RCLCPP_INFO(this->get_logger(), "Starting calibration process");
-    rclcpp::Time time0 = now();
-    //
     double offsets[6];
     //long offsetsOld[6];
     float mpuGet[6];
     for (uint8_t j = 0; j < 6; j++) {    // reset calibration array
         offsets[j] = 0;
     }
+    //
+    RCLCPP_INFO(this->get_logger(), "Starting calibration process");
+    rclcpp::Time time0 = now();
+    //
     for (int i = 0; i < N_Calibrate; i++) {
       // Measuring N_Calibrate times to get mean values
       mpuGet[0] = get2data(fd_, ACCEL_X_OUT);
@@ -137,7 +138,7 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
       for (uint8_t j = 0; j < 6; j++) {
           offsets[j] += (double)mpuGet[j];    // accumulating raw measurements
       }
-      delay(10);
+      delay(10); // With 10 ms loop cycle is about 22.8 ms
     }
     for (uint8_t i = 0; i < 6; i++) {
         offsets[i] = (offsets[i] / N_Calibrate); // meaning values
@@ -152,9 +153,9 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
     GyroOffset[1] = (float)(offsets[4] * gyro_scale);
     GyroOffset[2] = (float)(offsets[5] * gyro_scale);
     rclcpp::Time time_cal_end = now();
-    RCLCPP_INFO(this->get_logger(), "Elapsed time: %.3f", (time_cal_end-time0).seconds());
-    RCLCPP_INFO(this->get_logger(), "Calibration ended. Offsets are:");
-    RCLCPP_INFO(this->get_logger(), "ax=%f; ay=%f; az=%f;\n gx=%f; gy=%f; gz=%f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
+    RCLCPP_INFO(this->get_logger(), "Elapsed time: %.3f s", (time_cal_end-time0).seconds());
+    //RCLCPP_INFO(this->get_logger(), "Calibration ended. Offsets are:");
+    RCLCPP_INFO(this->get_logger(), "Calibration ended. Offsets are:\n ax=%f; ay=%f; az=%f;\n gx=%f; gy=%f; gz=%f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
     //
   }
   // Initialize Euler angles
