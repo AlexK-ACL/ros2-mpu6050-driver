@@ -156,6 +156,10 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
     RCLCPP_INFO(this->get_logger(), "ax=%f; ay=%f; az=%f;\n gx=%f; gy=%f; gz=%f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
     //
   }
+  // Initialize Euler angles
+  Roll = 0;
+  Pitch = 0;
+  Yaw = 0;
   // Initialize quaternion
   Quat.x = 0;
   Quat.y = 0;
@@ -185,7 +189,9 @@ void Mpu6050Driver::onTimer()
 {
   updateCurrentGyroData();
   updateCurrentAccelData();
-  //calcRollPitch(); 
+  //calcRollPitch();
+  calcAttitude();
+  calcQuaternion();
   imuDataPublish();
 }
 
@@ -232,17 +238,22 @@ void Mpu6050Driver::imuDataPublish(){
   accel_.clear();
 }
 
-void Mpu6050Driver::calcRollPitch()
+/*void Mpu6050Driver::calcRollPitch()
 {
   //float roll = std::atan(accel_[1]/accel_[2])*57.324;
   //float pitch = std::atan(-accel_[0]/std::sqrt(accel_[1]*accel_[1] + accel_[2]*accel_[2]))*57.324;
   //printf("roll=%.2f ; pitch=%.2f", roll, pitch);
-}
+}*/
 
-geometry_msgs::msg::Quaternion Mpu6050Driver::calcQuaternion(double roll, double pitch, double yaw)
+//geometry_msgs::msg::Quaternion Mpu6050Driver::calcQuaternion()
+void Mpu6050Driver::calcQuaternion()
 {
     // Abbreviations for the various angular functions
-
+    // double roll, double pitch, double yaw
+    // roll (x), pitch (y), yaw (z), angles are in radians
+    double roll = Roll * (M_PI/180.0);
+    double pitch = Pitch * (M_PI/180.0);
+    double yaw = Yaw * (M_PI/180.0);
     double cr = cos(roll * 0.5);
     double sr = sin(roll * 0.5);
     double cp = cos(pitch * 0.5);
@@ -250,11 +261,18 @@ geometry_msgs::msg::Quaternion Mpu6050Driver::calcQuaternion(double roll, double
     double cy = cos(yaw * 0.5);
     double sy = sin(yaw * 0.5);
 
-    geometry_msgs::msg::Quaternion q;
-    q.w = cr * cp * cy + sr * sp * sy;
-    q.x = sr * cp * cy - cr * sp * sy;
-    q.y = cr * sp * cy + sr * cp * sy;
-    q.z = cr * cp * sy - sr * sp * cy;
+    //geometry_msgs::msg::Quaternion q;
+    Quat.w = cr * cp * cy + sr * sp * sy;
+    Quat.x = sr * cp * cy - cr * sp * sy;
+    Quat.y = cr * sp * cy + sr * cp * sy;
+    Quat.z = cr * cp * sy - sr * sp * cy;
 
-    return q;
+    //return q;
+}
+
+void Mpu6050Driver::calcAttitude()
+{
+  Roll += gyro_[0] * (timer_period/1000);
+  Pitch += gyro_[1] * (timer_period/1000);
+  Yaw += gyro_[2] * (timer_period/1000);
 }

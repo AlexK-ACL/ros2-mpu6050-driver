@@ -34,8 +34,10 @@ private:
   void onTimer();
   void updateCurrentGyroData();
   void updateCurrentAccelData();
-  void calcRollPitch();
-  geometry_msgs::msg::Quaternion calcQuaternion(double roll, double pitch, double yaw);
+  //void calcRollPitch();
+  //geometry_msgs::msg::Quaternion calcQuaternion();
+  void calcQuaternion();
+  void calcAttitude();
   void imuDataPublish();
   float get2data(int fd, unsigned int reg);
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
@@ -56,6 +58,11 @@ private:
   int do_calibration;
   float AccelOffset[3];
   float GyroOffset[3];
+  // Roll, Pitch, Yaw, angles are in degrees
+  double Roll;
+  double Pitch;
+  double Yaw;
+  // roll, pitch, yaw, angles are in radians
   geometry_msgs::msg::Quaternion Quat;
   // for wiringPiI2C
   int fd_;
