@@ -17,6 +17,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <geometry_msgs/msg/quaternion.hpp>
 
 #include <memory>
 #include <string>
@@ -34,6 +35,7 @@ private:
   void updateCurrentGyroData();
   void updateCurrentAccelData();
   void calcRollPitch();
+  geometry_msgs::msg::Quaternion calcQuaternion(double roll, double pitch, double yaw);
   void imuDataPublish();
   float get2data(int fd, unsigned int reg);
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
@@ -54,6 +56,7 @@ private:
   int do_calibration;
   float AccelOffset[3];
   float GyroOffset[3];
+  geometry_msgs::msg::Quaternion Quat;
   // for wiringPiI2C
   int fd_;
 };

@@ -46,7 +46,12 @@
 
 #define DEV_ADDR     0x68    // MPU6050 device I2C address 
 
-#define N_Calibrate 500 // Calibration set size
+#define N_CALIB_DEF 500 // Calibration set size
+
+/* struct Quaternion
+{
+    double w, x, y, z;
+}; */
 
 Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOptions & node_options)
 : rclcpp::Node(node_name, node_options)
@@ -100,8 +105,18 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   GyroOffset[0] = 0;
   GyroOffset[1] = 0;
   GyroOffset[2] = 0;
-  //
-  if (do_calibration == 1){
+  
+  // Calibration
+  
+  if (do_calibration >= 1){
+    int N_Calibrate;
+    if (do_calibration < 100){ // You can set calibration duration starting from 100, otherwise uses default
+      N_Calibrate = N_CALIB_DEF;
+    }
+    else {
+      N_Calibrate = do_calibration;
+    }
+    //
     RCLCPP_INFO(this->get_logger(), "Starting calibration process");
     //
     double offsets[6];
@@ -140,6 +155,12 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
     RCLCPP_INFO(this->get_logger(), "ax=%.2f; ay=%.2f; az=%.2f; gx=%.2f; gy=%.2f; gz=%.2f",AccelOffset[0],AccelOffset[1],AccelOffset[2],GyroOffset[0],GyroOffset[1],GyroOffset[2]);
     //
   }
+  // Initialize quaternion
+  Quat.x = 0;
+  Quat.y = 0;
+  Quat.z = 0;
+  Quat.w = 0;
+  //
   RCLCPP_INFO(this->get_logger(), "Starting measurements");
 }
 
@@ -149,7 +170,7 @@ void Mpu6050Driver::initializeI2C(){
     RCLCPP_ERROR(this->get_logger(),"ERROR : No device!!");
     //printf("ERROR : No device!!");
   }
-  else{ // Set MPU6050 configuration registers
+  else { // Set MPU6050 configuration registers
     wiringPiI2CWriteReg8(fd_, SMPLRT_DIV, 7);
     wiringPiI2CWriteReg8(fd_, PWR_MGMT_1, 1);
     wiringPiI2CWriteReg8(fd_, CONFIG, 0);
@@ -200,6 +221,11 @@ void Mpu6050Driver::imuDataPublish(){
   msg.linear_acceleration.x = accel_[0] * g; // in m/s^2
   msg.linear_acceleration.y = accel_[1] * g;
   msg.linear_acceleration.z = accel_[2] * g;
+  // Quaternion pose, calculated from integrated Euler angles
+  msg.orientation = Quat;
+  /* msg.orientation.y = Quat.y;
+  msg.orientation.z = Quat.z;
+  msg.orientation.w = Quat.w; */
   imu_pub_->publish(msg);
   gyro_.clear();
   accel_.clear();
@@ -210,4 +236,24 @@ void Mpu6050Driver::calcRollPitch()
   //float roll = std::atan(accel_[1]/accel_[2])*57.324;
   //float pitch = std::atan(-accel_[0]/std::sqrt(accel_[1]*accel_[1] + accel_[2]*accel_[2]))*57.324;
   //printf("roll=%.2f ; pitch=%.2f", roll, pitch);
+}
+
+geometry_msgs::msg::Quaternion Mpu6050Driver::calcQuaternion(double roll, double pitch, double yaw)
+{
+    // Abbreviations for the various angular functions
+
+    double cr = cos(roll * 0.5);
+    double sr = sin(roll * 0.5);
+    double cp = cos(pitch * 0.5);
+    double sp = sin(pitch * 0.5);
+    double cy = cos(yaw * 0.5);
+    double sy = sin(yaw * 0.5);
+
+    geometry_msgs::msg::Quaternion q;
+    q.w = cr * cp * cy + sr * sp * sy;
+    q.x = sr * cp * cy - cr * sp * sy;
+    q.y = cr * sp * cy + sr * cp * sy;
+    q.z = cr * cp * sy - sr * sp * cy;
+
+    return q;
 }
