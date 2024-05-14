@@ -66,6 +66,7 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   this->declare_parameter("AFS_SEL", 0);
   this->declare_parameter("FS_SEL", 0);
   this->declare_parameter("do_calibration", 0);
+  this->declare_parameter("flip_longitudial", 0);
 
   // Get node update timer period
   timer_period = this->get_parameter("timer_period").as_int();
@@ -81,7 +82,11 @@ Mpu6050Driver::Mpu6050Driver(const std::string & node_name, const rclcpp::NodeOp
   // Get calibration setting
   do_calibration = this->get_parameter("do_calibration").as_int();
 
-  RCLCPP_INFO(this->get_logger(), "Received parameters:\n timer_period=%d; g=%f;\n AFS_SEL=%d; FS_SEL=%d; do_calibration=%d", timer_period, g, AFS_SEL, FS_SEL, do_calibration);
+  flip_longitudial = this->get_parameter("flip_longitudial").as_int();
+
+  RCLCPP_INFO(this->get_logger(), "Received parameters:\n timer_period=%d; g=%f;\n AFS_SEL=%d; FS_SEL=%d; do_calibration=%d;\n flip_longitudial=%d", timer_period, g, AFS_SEL, FS_SEL, do_calibration, flip_longitudial);
+
+  if (flip_longitudial > 0) flip_longitudial = (-1);
 
   // Measurements scaling setup
   Acc_SF = pow(2, AFS_SEL) * 2;
@@ -199,15 +204,15 @@ void Mpu6050Driver::onTimer()
 
 void Mpu6050Driver::updateCurrentGyroData()
 {
-    gyro_.push_back((get2data(fd_, GYRO_X_OUT) * gyro_scale) - GyroOffset[0]);
-    gyro_.push_back((get2data(fd_, GYRO_Y_OUT) * gyro_scale) - GyroOffset[1]);
+    gyro_.push_back(((get2data(fd_, GYRO_X_OUT) * gyro_scale) - GyroOffset[0]) * flip_longitudial);
+    gyro_.push_back(((get2data(fd_, GYRO_Y_OUT) * gyro_scale) - GyroOffset[1]) * flip_longitudial);
     gyro_.push_back((get2data(fd_, GYRO_Z_OUT) * gyro_scale) - GyroOffset[2]);
 }
 
 void Mpu6050Driver::updateCurrentAccelData()
 {
-    accel_.push_back((get2data(fd_, ACCEL_X_OUT) * acc_scale) - AccelOffset[0]);
-    accel_.push_back((get2data(fd_, ACCEL_Y_OUT) * acc_scale) - AccelOffset[1]);
+    accel_.push_back(((get2data(fd_, ACCEL_X_OUT) * acc_scale) - AccelOffset[0]) * flip_longitudial);
+    accel_.push_back(((get2data(fd_, ACCEL_Y_OUT) * acc_scale) - AccelOffset[1]) * flip_longitudial);
     accel_.push_back((get2data(fd_, ACCEL_Z_OUT) * acc_scale) - AccelOffset[2]);
 }
 

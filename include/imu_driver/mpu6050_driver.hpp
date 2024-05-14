@@ -56,6 +56,7 @@ private:
   double acc_scale;
   double gyro_scale;
   int do_calibration;
+  int flip_longitudial;
   float AccelOffset[3];
   float GyroOffset[3];
   // Roll, Pitch, Yaw, angles are in degrees

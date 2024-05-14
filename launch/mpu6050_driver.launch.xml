@@ -7,6 +7,7 @@
   <arg name="AFS_SEL" default="0" description="Sets accel scale setting to one of the modes: 0(+-2g) 1(+-4g) 2(+-8g) 3(+-16g)" />
   <arg name="FS_SEL" default="0" description="Sets gyro scale setting to one of the modes: 0(+-250) 1(+-500) 2(+-1000) 3(+-2000)" />
   <arg name="do_calibration" default="0" description="Set 1 to enable calibration, or more then 100 to set number of measurements (500 - default),  0 - No calibration" />
+  <arg name="flip_longitudial" default="0" description="Set 1 to flip imu longitudinal axis in the opposite direction (i.e. rotate by 180 degrees around z),  0 - No flip" />
 
   <node name="imu_driver" pkg="imu_driver" exec="imu_driver">
     <remap from="output" to="$(var output_imu_name)" /> <!-- Redirects output topic -->
@@ -16,5 +17,6 @@
     <param name="AFS_SEL" value="$(var AFS_SEL)" />
     <param name="FS_SEL" value="$(var FS_SEL)" />
     <param name="do_calibration" value="$(var do_calibration)" />
+    <param name="flip_longitudial" value="$(var flip_longitudial)" />
   </node>
 </launch>
